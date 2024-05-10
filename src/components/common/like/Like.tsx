@@ -11,25 +11,38 @@ const Like = ({ liked, id }: LikeProps) => {
   const queryClient = useQueryClient();
 
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [optimisticLiked, setOptimisticLiked] = useState<boolean>(liked);
 
   const { mutate: likeMutate } = useMutation({
     mutationFn: (id: number) => postLikedTours({ id }),
+    onMutate: () => {
+      setOptimisticLiked(true);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['details'] });
       queryClient.invalidateQueries({ queryKey: ['tours'] });
       queryClient.invalidateQueries({ queryKey: ['wishList'] });
     },
-    onError: () => console.log('error'),
+    onError: () => {
+      console.log('error');
+      setOptimisticLiked(false); // Revert on error
+    },
   });
 
   const { mutate: unlikeMutate } = useMutation({
     mutationFn: (id: number) => deleteLikedTours({ id }),
+    onMutate: () => {
+      setOptimisticLiked(false);
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['details'] });
       queryClient.invalidateQueries({ queryKey: ['tours'] });
       queryClient.invalidateQueries({ queryKey: ['wishList'] });
     },
-    onError: () => console.log('error'),
+    onError: () => {
+      console.log('error');
+      setOptimisticLiked(true); 
+    },
   });
 
   const onClickLikeButton = (e: React.MouseEvent<HTMLElement>) => {
@@ -37,7 +50,7 @@ const Like = ({ liked, id }: LikeProps) => {
     const token = localStorage.getItem('accessToken');
     if (token) {
       setIsLoggedIn(true);
-      if (liked === false) {
+      if (optimisticLiked === false) {
         likeMutate(id);
       } else {
         unlikeMutate(id);
@@ -64,8 +77,8 @@ const Like = ({ liked, id }: LikeProps) => {
             onClick={onClickLikeButton}
             className="top-75 h-[24px] w-[24px] cursor-pointer">
             <HeartIcon
-              fill={liked ? '#FF2167' : '#D7D7D7'}
-              color={liked ? '#ff2167' : '#ffffff'}
+              fill={optimisticLiked ? '#FF2167' : '#D7D7D7'}
+              color={optimisticLiked ? '#ff2167' : '#ffffff'}
             />
           </div>
         </>
@@ -86,8 +99,8 @@ const Like = ({ liked, id }: LikeProps) => {
               onClick={onClickLikeButton}
               className="top-75 h-[24px] w-[24px] cursor-pointer">
               <HeartIcon
-                fill={liked ? '#FF2167' : '#D7D7D7'}
-                color={liked ? '#ff2167' : '#ffffff'}
+                fill={optimisticLiked ? '#FF2167' : '#D7D7D7'}
+                color={optimisticLiked ? '#ff2167' : '#ffffff'}
               />
             </div>
           </Alert>
@@ -98,3 +111,4 @@ const Like = ({ liked, id }: LikeProps) => {
 };
 
 export default Like;
+
